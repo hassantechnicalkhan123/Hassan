@@ -1,0 +1,46 @@
+import pandas as pd
+
+from mlxtend.frequent_patterns import apriori, association_rules
+
+data = pd.read_csv('data.csv')
+
+data = data.replace('A', 0)
+
+grading_scale = [
+    (85, 'A+'),
+    (80, 'A'),
+    (75, 'B+'),
+    (65, 'B'),
+    (58, 'C+'),
+    (55, 'C-'),
+    (50, 'D'),
+    (0, 'F')
+]
+
+def convert_marks_to_grade(marks):
+       marks = int(marks)
+       for threshold, grade in grading_scale:
+        if marks >= threshold:
+            return grade
+ 
+data['FOP'] = data['FOP'].apply(convert_marks_to_grade)
+data['OOPS'] = data['OOPS'].apply(convert_marks_to_grade)
+
+data_encoded = pd.get_dummies(data[['FOP', 'OOPS']])
+
+frequent_itemsets = apriori(data_encoded, min_support=0.1, use_colnames=True)
+
+rules = association_rules(frequent_itemsets, metric='confidence', min_threshold=0.6)
+
+rules = rules.sort_values(by='confidence', ascending=False)
+
+most_frequent_pair = frequent_itemsets.sort_values(by='support', ascending=False).iloc[0]
+print("Most Frequent Pair of grades:")
+print(most_frequent_pair)
+
+print("\nStrong Association Rules:")
+for index, rule in rules.iterrows():
+    antecedents = ', '.join(rule['antecedents'])
+    consequents = ', '.join(rule['consequents'])
+    confidence = rule['confidence']
+    print(f"{antecedents} --> {consequents} (confidence: {confidence})")
